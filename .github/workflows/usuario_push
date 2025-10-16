@@ -1,0 +1,13 @@
+name: Exemplo de Ação
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mostrar usuário
+        run: echo "O usuário que fez o push foi: ${{ github.event.pusher.name }}"
