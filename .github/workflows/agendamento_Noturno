@@ -1,0 +1,32 @@
+name: Workflow noturno
+
+on:
+  schedule:
+    # Executa todo dia à 1h, 2h, 3h, ..., 6h (aproximadamente)
+    - cron: '0 1-6 * * *'
+
+jobs:
+  executar_a_noite:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+        
+      - name: Checar se está noite
+        id: check_time
+        # Usa uma condição if para checar se o horário é entre 0h e 6h
+        run: |
+          current_hour_utc=$(date -u +%H)
+          if [ "$current_hour_utc" -ge 0 && "$current_hour_utc" -le 6 ]; then
+            echo "::set-output name=is_night::true"
+          else
+            echo "::set-output name=is_night::false"
+          fi
+        shell: bash
+      
+      - name: Executar tarefas noturnas
+        # A condição if garante que este step só será executado se a hora for entre 0h e 6h UTC
+        if: steps.check_time.outputs.is_night == 'true'
+        run: |
+          echo "Rodando tarefas noturnas..."
+          # Comandos para executar à noite
