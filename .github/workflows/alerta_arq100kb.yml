@@ -1,0 +1,26 @@
+name: alerta-arquivos-grandes
+on: [push, pull_request]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+
+      - name: Avisar se houver arquivos > 100KB nas mudanças
+        run: |
+          TH=102400
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            git fetch origin "${{ github.base_ref }}" --depth=1 || true
+            BASE="origin/${{ github.base_ref }}"
+          else
+            BASE="$(git rev-parse HEAD^)"
+          fi
+
+          git diff --name-only --diff-filter=AM -z "$BASE"...HEAD \
+          | xargs -0 -r -I{} bash -c '
+              [ -f "{}" ] || exit 0
+              s=$(wc -c < "{}")
+              [ "$s" -le '"$TH"' ] || echo "::warning file={},title=Arquivo grande::{} tem $(( (s+1023)/1024 )) KB (>100 KB)"
+            '
