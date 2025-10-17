@@ -1,0 +1,10 @@
+name: Workflow Agendado
+on:
+  schedule:
+    - cron: '0 8 * * 6' # Executa às 8:00 UTC todos os sábados
+jobs:
+  job_aos_sabados:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Exemplo de passo
+        run: echo "Este job só executa aos sábados!"
