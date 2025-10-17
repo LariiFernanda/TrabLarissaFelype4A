@@ -1,0 +1,20 @@
+name: Contar Arquivos
+
+on: [push]
+
+jobs:
+  count_files:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Contar arquivos no root
+        run: |
+          echo "Arquivos no root:"
+          ls -l | grep '^-' | wc -l
+
+      - name: Contar arquivos recursivamente
+        run: |
+          echo "Arquivos recursivamente:"
+          ls -R | grep '^-' | wc -l
