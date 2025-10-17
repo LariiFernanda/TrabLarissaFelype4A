@@ -1,0 +1,16 @@
+name: contagem-arquivos-diaria
+
+on:
+  schedule:
+    - cron: '0 3 * * *'  # meia-noite America/Sao_Paulo (UTC-3)
+  workflow_dispatch:
+
+jobs:
+  contar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Contar arquivos
+        run: |
+          n=$(git ls-files | wc -l)       # arquivos rastreados pelo Git
+          echo "::notice title=Contagem diária::$n arquivos no repositório"
