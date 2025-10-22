@@ -1,0 +1,110 @@
+name: CI Pipeline
+
+on:
+  push:
+  schedule:
+    - cron: '0 1-6 * * *'   # Executa todo dia entre 1h e 6h UTC
+    - cron: '0 8 * * 6'     # Executa às 8h UTC todo sábado
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v3
+
+      - name: Exibir mensagem
+        run: echo "Hello, world!"
+
+      - name: Exibir data do commit
+        run: echo "Data do push: ${{ github.event.head_commit.timestamp }}"
+
+      - name: Exibir hora do push
+        run: |
+          python -c "import datetime; print(datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC'))"
+
+      - name: Mostrar usuário
+        run: echo "O usuário que fez o push foi: ${{ github.event.pusher.name }}"
+
+      - name: Calcular e exibir resultado
+        run: |
+          RESULTADO=$((2+2))
+          echo "O resultado de 2+2 é: $RESULTADO"
+
+      - name: Listar arquivos
+        run: |
+          echo "### Listando arquivos com 'ls -R'"
+          ls -R
+          echo "### Listando arquivos com 'find .'"
+          find .
+
+      - name: Contar arquivos no root
+        run: |
+          echo "Arquivos no root:"
+          ls -l | grep '^-' | wc -l
+
+      - name: Contar arquivos recursivamente
+        run: |
+          echo "Arquivos recursivamente:"
+          find . -type f | wc -l
+
+      - name: Criar arquivo com informações
+        run: |
+          echo "Este push foi feito por: ${{ github.actor }}" > readme.txt
+          echo "Data: $(date)" >> readme.txt
+          echo "Commit: ${{ github.sha }}" >> readme.txt
+          cat readme.txt
+
+      - name: Commitar e enviar o arquivo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add readme.txt
+          git commit -m "Adicionado arquivo automático com dados do push" || echo "Nada para commitar"
+          git push
+
+      - name: Checar se está noite (0h–6h UTC)
+        id: check_time
+        run: |
+          current_hour_utc=$(date -u +%H)
+          if [ "$current_hour_utc" -ge 0 ] && [ "$current_hour_utc" -le 6 ]; then
+            echo "is_night=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_night=false" >> $GITHUB_OUTPUT
+          fi
+        shell: bash
+      
+      - name: Executar tarefas noturnas
+        if: steps.check_time.outputs.is_night == 'true'
+        run: |
+          echo "Rodando tarefas noturnas..."
+          # Coloque comandos específicos aqui
+
+      - name: Avisar se houver arquivos > 100KB nas mudanças
+        run: |
+          TH=102400
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            git fetch origin "${{ github.base_ref }}" --depth=1 || true
+            BASE="origin/${{ github.base_ref }}"
+          else
+            BASE="$(git rev-parse HEAD^)"
+          fi
+
+          git diff --name-only --diff-filter=AM -z "$BASE"...HEAD \
+          | xargs -0 -r -I{} bash -c '
+              [ -f "{}" ] || exit 0
+              s=$(wc -c < "{}")
+              [ "$s" -le '"$TH"' ] || echo "::warning file={},title=Arquivo grande::{} tem $(( (s+1023)/1024 )) KB (>100 KB)"
+            '
+
+      - name: Contar arquivos no repositório
+        run: |
+          n=$(git ls-files | wc -l)
+          echo "::notice title=Contagem diária::$n arquivos no repositório"
+
+  job_aos_sabados:
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 8 * * 6'
+    steps:
+      - name: Exemplo de passo
+        run: echo "Este job só executa aos sábados!"
